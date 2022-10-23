@@ -55,6 +55,8 @@ namespace gpsPlus{
     static uint32_t lastMillis = 0;
     static uint32_t pingRecvest = 0;
 
+    extern device_t gpsDevice;
+
     inline void updateLast(void);
     static int start(void){
 //        setupFHSSChannel(SERVICE_CHANNEL);
@@ -66,13 +68,13 @@ namespace gpsPlus{
     static bool check32Key(uint32_t key)  { return true;};        // TODO
     static bool checkWakeUpKey(uint32_t key)  { return true;};   // TODO
     static void sendWakeUpResponce();           // TODO
-    static void sendServiceToSync();            // TODO
-    static void sendGPSResponce();              // TODO
-    static void sendToPingResponce();           // TODO
-    static void sendPingResponce();             // TODO
-    static void sendTickResponce();             // TODO
+    static void sendServiceToSync() { return;};            // TODO
+    static void sendGPSResponce() { return;};              // TODO
+    static void sendToPingResponce() { return;};           // TODO
+    static void sendPingResponce() { return;};             // TODO
+    static void sendTickResponce() { return;};             // TODO
 
-    inline void packetProccess(OTA_Packet_s* packet);
+    ICACHE_RAM_ATTR void packetProccess(OTA_Packet_s* packet);
     static bool isNoSpeed(void);
     static int loop(void);
 

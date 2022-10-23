@@ -3,7 +3,7 @@
 
 namespace gpsPlus{
 
-    inline void packetProccess(OTA_Packet_s* packet){
+    ICACHE_RAM_ATTR void packetProccess(OTA_Packet_s* packet){
 
         int index = packet->std.msp_ul.packageIndex;
         Pack_msg* pack = (Pack_msg*)(packet->std.msp_ul.payload);

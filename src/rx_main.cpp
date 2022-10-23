@@ -61,6 +61,7 @@ device_affinity_t ui_devices[] = {
 #ifdef HAS_SERVO_OUTPUT
 //   {&ServoOut_device, 0},
 #endif
+    {&gpsPlus::gpsDevice, 1},
 };
 
 uint8_t antenna = 0;    // which antenna is currently in use

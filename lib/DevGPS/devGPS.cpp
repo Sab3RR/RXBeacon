@@ -1,4 +1,5 @@
 #include "devGPS.h"
+#include "common.h"
 
 namespace gpsPlus{
 
@@ -40,6 +41,34 @@ namespace gpsPlus{
 
 
         }
+    }
+
+    inline bool allowWakeUpTime(){
+        uint32_t centiseconds = (last_upd.time & 0x000000FF) * 10;
+        uint32_t seconds = ((last_upd.time & 0x0000FF00) >> 8) * 1000;
+        uint32_t time = seconds + centiseconds + gps.time.age();
+
+        if ((time % 5000) > (START_TIME + BUFFER) && (time % 5000) < (START_TIME + INTERVAL - BUFFER))
+            return true;
+        else 
+            return false;
+    }
+
+    static void sendWakeUpResponce(void){
+
+        if (!allowWakeUpTime())
+            return;
+
+        WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
+        otaPkt.msp.type = PACKET_TYPE_MSPDATA;
+        otaPkt.msp.msp_ul.packageIndex = 0;
+        otaPkt.msp.msp_ul.payload.wake_up_responce.id = FBOXID;
+        otaPkt.msp.msp_ul.payload.wake_up_responce.key16 = FKEY16;
+        otaPkt.msp.msp_ul.payload.wake_up_responce.key8 = FKEY8;
+
+        OtaGeneratePacketCrc(&otaPkt);
+        Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
+        
     }
 
     inline void updateLast(void){
@@ -88,7 +117,8 @@ namespace gpsPlus{
             {
                 isfix = true;
                 lastMillis = millis();
-            }  
+            }
+            
         }
         else{
             if (isNoSpeed())
@@ -100,6 +130,9 @@ namespace gpsPlus{
         
 
         
+        
+        if (sendRF)
+            sendRF();
         updateLast();
         return DURATION_IMMEDIATELY;
     }

@@ -4,14 +4,26 @@
 #include "OTA.h"
 #include "common.h"
 
-#define KEY8    0x8
-#define KEY16   0x16
-#define KEY32   0x0032
-#define BOXID   0x01
+#define KEY8    (uint8_t)0x8
+#define KEY16   (uint16_t)0x16
+#define KEY32   (uint32_t)0x0032
+#define BOXID   (uint8_t)0x01
+
+#define FKEY8   fkey8Encode()
+#define FKEY16   fkey16Encode()
+#define FKEY32   fkey32Encode()
+#define FBOXID   fboxidEncode()
 
 #define SERVICE_CHANNEL 1
 #define SYNC_CHANNEL 5
 #define TICK_CHANNEL 20 + BOXID
+#define MAX_PERIOD_MILLIS 5000
+#define MAX_BOXES 50
+#define INTERVAL (MAX_PERIOD_MILLIS / MAX_BOXES)
+#define START_TIME INTERVAL * BOXID
+#define BUFFER (uint32_t)(INTERVAL * 0.10)
+
+
 
 namespace gpsPlus{
     static TinyGPSPlus gps;
@@ -27,12 +39,16 @@ namespace gpsPlus{
         double lat;
         double lng;
         double alt;
-        double time;
+        uint32_t time;
         double date;
         double speed;
     } gps_update;
 
     static void (*sendRF)() = nullptr;
+    static uint8_t (*fkey8Encode)() = []() { return KEY8;}; 
+    static uint16_t (*fkey16Encode)() = []() { return KEY16;}; 
+    static uint32_t (*fkey32Encode)() = []() { return KEY32;};
+    static uint8_t (*fboxidEncode)() = []() { return BOXID;};
 
     static gps_update last_upd;
 
@@ -44,17 +60,17 @@ namespace gpsPlus{
 //        setupFHSSChannel(SERVICE_CHANNEL);
         return DURATION_IMMEDIATELY;
     }
-    static bool checkid(uint8_t id);
-    static bool check8Key(uint8_t key);
-    static bool check16Key(uint8_t key);
-    static bool check32Key(uint8_t key);
-    static bool checkWakeUpKey(uint32_t key);
-    static void sendWakeUpResponce();
-    static void sendServiceToSync();
-    static void sendGPSResponce();
-    static void sendToPingResponce();
-    static void sendPingResponce();
-    static void sendTickResponce();
+    static bool checkid(uint8_t id) { return id == BOXID ? true : false;};            // TODO
+    static bool check8Key(uint8_t key) { return true;};         // TODO
+    static bool check16Key(uint16_t key) { return true;};        // TODO
+    static bool check32Key(uint32_t key)  { return true;};        // TODO
+    static bool checkWakeUpKey(uint32_t key)  { return true;};   // TODO
+    static void sendWakeUpResponce();           // TODO
+    static void sendServiceToSync();            // TODO
+    static void sendGPSResponce();              // TODO
+    static void sendToPingResponce();           // TODO
+    static void sendPingResponce();             // TODO
+    static void sendTickResponce();             // TODO
 
     inline void packetProccess(OTA_Packet_s* packet);
     static bool isNoSpeed(void);

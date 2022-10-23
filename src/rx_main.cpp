@@ -22,7 +22,8 @@
 #include "devServoOutput.h"
 #include "devVTXSPI.h"
 #include "devAnalogVbat.h"
-#include "TinyGPSPlus.h"
+#include "devGPS.h"
+
 #include <unistd.h>
 
 ///LUA///
@@ -214,7 +215,7 @@ void ICACHE_RAM_ATTR getRFlinkInfo()
         #endif
         if (rssiDBM > 0) rssiDBM = 0;
         // BetaFlight/iNav expect positive values for -dBm (e.g. -80dBm -> sent as 80)
-        crsf.LinkStatistics.uplink_RSSI_1 = -rssiDBM;
+        // crsf.LinkStatistics.uplink_RSSI_1 = -rssiDBM;
     }
     else
     {
@@ -266,7 +267,7 @@ void SetRFLinkRate(uint8_t index) // Set speed of RF link
     interval = interval * 12 / 10; // increase the packet interval by 20% to allow adding packet header
 #endif
     hwTimer.updateInterval(interval);
-    Radio.Config(ModParams->bw, ModParams->sf, ModParams->cr, GetInitialFreq(),
+    Radio.Config(ModParams->bw, ModParams->sf, ModParams->cr,FHSSgetCurrFreq(1),
                  ModParams->PreambleLen, invertIQ, ModParams->PayloadLength, 0
 #if defined(RADIO_SX128X)
                  , uidMacSeedGet(), OtaCrcInitializer, (ModParams->radio_type == RADIO_TYPE_SX128x_FLRC)
@@ -295,7 +296,7 @@ bool ICACHE_RAM_ATTR HandleFHSS()
     }
 
     alreadyFHSS = true;
-    Radio.SetFrequencyReg(FHSSgetNextFreq());
+    // Radio.SetFrequencyReg(FHSSgetNextFreq());
 
     uint8_t modresultTLM = (OtaNonce + 1) % ExpressLRS_currTlmDenom;
 
@@ -513,7 +514,7 @@ void ICACHE_RAM_ATTR HWtimerCallbackTick() // this is 180 out of phase with the 
         LQCalcDVDA.inc();
     }
 
-    crsf.LinkStatistics.uplink_Link_quality = uplinkLQ;
+    // crsf.LinkStatistics.uplink_Link_quality = uplinkLQ;
     // Only advance the LQI period counter if we didn't send Telemetry this period
     if (!alreadyTLMresp)
         LQCalc.inc();
@@ -850,6 +851,11 @@ static bool ICACHE_RAM_ATTR ProcessRfPacket_SYNC(uint32_t const now, OTA_Sync_s 
     return false;
 }
 
+static void setupFHSSChannel(const uint8_t channel)
+{
+    Radio.SetFrequencyReg(FHSSgetCurrFreq(channel));
+}
+
 uint8_t* call;
 
 bool ICACHE_RAM_ATTR MyProccessRFPacket(SX12xxDriverCommon::rx_status const status)
@@ -882,6 +888,14 @@ bool ICACHE_RAM_ATTR MyProccessRFPacket(SX12xxDriverCommon::rx_status const stat
     //     free(str);
     //     // return false;
     // }
+    if (!OtaValidatePacketCrc(otaPktPtr))
+    {
+        DBGVLN("CRC error");
+        #if defined(DEBUG_RX_SCOREBOARD)
+            lastPacketCrcError = true;
+        #endif
+        return false;
+    }
     if (otaPktPtr->std.type == PACKET_TYPE_SYNC)
     {
         needsend = true;
@@ -892,6 +906,10 @@ bool ICACHE_RAM_ATTR MyProccessRFPacket(SX12xxDriverCommon::rx_status const stat
         Serial.write(str, l);
         free(str);
         
+    }
+    if (otaPktPtr->std.type == PACKET_TYPE_MSPDATA)
+    {
+        gpsPlus::packetProccess(otaPktPtr);
     }
     return true;
 
@@ -1230,7 +1248,7 @@ void HandleUARTin()
 
 static void setupRadio()
 {
-    Radio.currFreq = GetInitialFreq();
+    Radio.currFreq = FHSSgetCurrFreq(1);
 #if defined(RADIO_SX127X)
     //Radio.currSyncWord = UID[3];
 #endif

@@ -21,7 +21,7 @@ namespace gpsPlus{
                 break;
             case TYPE_GPS_RECVEST:
                 if (check8Key(pack->gps_recvest.key8) && check16Key(pack->gps_recvest.key16) && checkid(pack->gps_recvest.id))
-                    sendRF = sendGPSResponce;
+                    sendGPSResponce(index);
                 break;
             case TYPE_TO_PING_RECVEST:
                 if (check8Key(pack->to_ping_recvest.key8) && check16Key(pack->to_ping_recvest.key16) && checkid(pack->to_ping_recvest.id)){
@@ -54,6 +54,47 @@ namespace gpsPlus{
             return false;
     }
 
+    static void sendGPSResponce(uint8_t page){
+        WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
+        uint32_t* msg;
+
+        if (!lockDouble)
+            lockDouble = true;
+
+        otaPkt.msp.type = PACKET_TYPE_MSPDATA;
+        otaPkt.msp.msp_ul.packageIndex = page; 
+        switch (page){
+            case 0:
+                msg = (uint32_t*)&(last_upd.lat);
+                otaPkt.msp.msp_ul.payload.gps_responce.responce = msg[0];
+                break;
+            case 1:
+                msg = (uint32_t*)&(last_upd.lat);
+                otaPkt.msp.msp_ul.payload.gps_responce.responce = msg[1];
+                break;
+            case 2:
+                msg = (uint32_t*)&(last_upd.lng);
+                otaPkt.msp.msp_ul.payload.gps_responce.responce = msg[0];
+                break;
+            case 3:
+                msg = (uint32_t*)&(last_upd.lng);
+                otaPkt.msp.msp_ul.payload.gps_responce.responce = msg[1];
+                break;
+            case 4:
+                msg = (uint32_t*)&(last_upd.alt);
+                otaPkt.msp.msp_ul.payload.gps_responce.responce = msg[0];
+                break;
+            case 5:
+                msg = (uint32_t*)&(last_upd.alt);
+                otaPkt.msp.msp_ul.payload.gps_responce.responce = msg[1];
+                break;
+        }
+        otaPkt.msp.msp_ul.payload.type = TYPE_GPS_RESPONCE;
+
+        OtaGeneratePacketCrc(&otaPkt);
+        Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
+    }
+
     static void sendWakeUpResponce(void){
 
         if (!allowWakeUpTime())
@@ -65,20 +106,35 @@ namespace gpsPlus{
         otaPkt.msp.msp_ul.payload.wake_up_responce.id = FBOXID;
         otaPkt.msp.msp_ul.payload.wake_up_responce.key16 = FKEY16;
         otaPkt.msp.msp_ul.payload.wake_up_responce.key8 = FKEY8;
+        otaPkt.msp.msp_ul.payload.type = TYPE_WAKE_UP_RESPONCE;
 
         OtaGeneratePacketCrc(&otaPkt);
         Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
         
     }
 
+    static void sendServiceToSync(){
+        WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
+        otaPkt.msp.type = PACKET_TYPE_MSPDATA;
+        otaPkt.msp.msp_ul.packageIndex = 0;
+        otaPkt.msp.msp_ul.payload.service_to_sync_responce.id = FBOXID;
+        otaPkt.msp.msp_ul.payload.service_to_sync_responce.key8 = FKEY8;
+        otaPkt.msp.msp_ul.payload.service_to_sync_responce.key16 = FKEY16;
+        otaPkt.msp.msp_ul.payload.type = TYPE_SERVICE_TO_SYNC_RESPONCE;
+
+        OtaGeneratePacketCrc(&otaPkt);
+        Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
+        sendRF = nullptr;
+    }
+
     inline void updateLast(void){
-        if (gps.location.isUpdated())
+        if (gps.location.isUpdated() && !lockDouble)
         {
             last_upd.lat = gps.location.lat();
             last_upd.lng = gps.location.lng();
         }
             
-        if (gps.altitude.isUpdated())
+        if (gps.altitude.isUpdated() && !lockDouble)
             last_upd.alt = gps.altitude.meters();
         if (gps.time.isUpdated())
             last_upd.time = gps.time.value();

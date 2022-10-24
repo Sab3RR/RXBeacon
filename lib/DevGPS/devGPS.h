@@ -32,6 +32,7 @@ namespace gpsPlus{
     static bool isfix = false;
     static bool allowPing = false;
     static bool allowWakeUp = true;
+    static bool lockDouble = false;
 
     static uint8_t fhss = 0;
 
@@ -40,7 +41,7 @@ namespace gpsPlus{
         double lng;
         double alt;
         uint32_t time;
-        double date;
+        uint32_t date;
         double speed;
     } gps_update;
 
@@ -67,9 +68,9 @@ namespace gpsPlus{
     static bool check16Key(uint16_t key) { return true;};        // TODO
     static bool check32Key(uint32_t key)  { return true;};        // TODO
     static bool checkWakeUpKey(uint32_t key)  { return true;};   // TODO
-    static void sendWakeUpResponce();           // TODO
-    static void sendServiceToSync() { return;};            // TODO
-    static void sendGPSResponce() { return;};              // TODO
+    static void sendWakeUpResponce();           
+    static void sendServiceToSync();            
+    static void sendGPSResponce(uint8_t page) ;              // TODO
     static void sendToPingResponce() { return;};           // TODO
     static void sendPingResponce() { return;};             // TODO
     static void sendTickResponce() { return;};             // TODO

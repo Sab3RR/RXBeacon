@@ -203,13 +203,18 @@ namespace gpsPlus{
             return false;
     }
 
-    static int loop(void){
+    static int gpsloop(void){
 
-        if (!SerialLogger)
-            return DURATION_IMMEDIATELY;
+        char str[50];
+        int l = sprintf(str, "millis = %u\n", millis());    
+        
+        Serial.write(str, l);
 
-        if (SerialLogger->available() > 0)
-            gps << SerialLogger->read();
+        // if (!SerialLogger)
+        //     return DURATION_IMMEDIATELY;
+
+        if (Serial.available() > 0)
+            gps << Serial.read();
         
         if (!isfix)
         {
@@ -228,9 +233,10 @@ namespace gpsPlus{
         }
 
         
-
+        // char str[50];
+        // int l = sprintf(str, "millis = %u", millis());    
         
-        
+        // SerialLogger->write(str, l);
         if (sendRF)
             sendRF();
         updateLast();
@@ -242,6 +248,6 @@ namespace gpsPlus{
         .initialize = nullptr,
         .start = start,
         .event = start,
-        .timeout = loop,
+        .timeout = gpsloop,
     };
 }

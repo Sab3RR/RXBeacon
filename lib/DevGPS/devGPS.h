@@ -33,6 +33,7 @@ namespace gpsPlus{
     static bool allowPing = false;
     static bool allowWakeUp = true;
     static bool lockDouble = false;
+    static bool responceOneTime = false;
 
     static uint8_t fhss = 0;
 
@@ -70,11 +71,10 @@ namespace gpsPlus{
     static bool checkWakeUpKey(uint32_t key)  { return true;};   // TODO
     static void sendWakeUpResponce();           
     static void sendServiceToSync();            
-    static void sendGPSResponce(uint8_t page) ;              // TODO
-    static void sendToPingResponce() { return;};           // TODO
-    static void sendPingResponce() { return;};             // TODO
-    static void sendTickResponce() { return;};             // TODO
-
+    static void sendGPSResponce(uint8_t page);              
+    static void sendToPingResponce();           
+    ICACHE_RAM_ATTR void sendPingResponce();             
+    static void sendTickResponce();             
     ICACHE_RAM_ATTR void packetProccess(OTA_Packet_s* packet);
     static bool isNoSpeed(void);
     static int loop(void);

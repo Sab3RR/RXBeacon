@@ -1515,7 +1515,7 @@ void setup()
 // uint8_t call2[] = {(uint8_t)rand() % 0xFF, (uint8_t)rand() % 0xFF, (uint8_t)rand() % 0xFF, (uint8_t)rand() % 0xFF};
 // uint8_t call3[] = {(uint8_t)rand() % 0xFF, (uint8_t)rand() % 0xFF, (uint8_t)rand() % 0xFF, (uint8_t)rand() % 0xFF};
 
-TinyGPSPlus gps;
+
 
 unsigned long last;
 void loop()
@@ -1545,16 +1545,10 @@ void loop()
         // free(str);
         last = now;
         // needsend = true;
-        hwTimer.resume();
+        hwTimer.stop();
     }
 
-    if (gps.location.isUpdated())
-        connectionState = connected;
-    else
-        connectionState = disconnected;
     
-    while (Serial.available() > 0)
-        gps.encode(Serial.read());
 
 
 

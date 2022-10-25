@@ -27,6 +27,7 @@ namespace gpsPlus{
                 if (check8Key(pack->to_ping_recvest.key8) && check16Key(pack->to_ping_recvest.key16) && checkid(pack->to_ping_recvest.id)){
                     allowPing = true;
                     pingRecvest = millis();
+                    responceOneTime = true;
                     sendRF = sendToPingResponce;
                 }
                 break;
@@ -40,6 +41,49 @@ namespace gpsPlus{
                 break;
 
 
+        }
+    }
+
+    static void sendTickResponce(){
+        WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
+        otaPkt.msp.type = PACKET_TYPE_MSPDATA;
+        otaPkt.msp.msp_ul.payload.type = TYPE_TICK_RESPONCE;
+        OtaGeneratePacketCrc(&otaPkt);
+        otaPkt.msp.msp_ul.payload.tick_responce.tick = ESP.getCycleCount();
+
+        Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
+
+    }
+    
+    ICACHE_RAM_ATTR void sendPingResponce(){
+        WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
+        otaPkt.msp.type = PACKET_TYPE_MSPDATA;
+        otaPkt.msp.msp_ul.payload.type = TYPE_PONG_RESPONCE;
+
+        OtaGeneratePacketCrc(&otaPkt);
+        Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
+    }
+
+    static void sendToPingResponce(){
+        WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
+        otaPkt.msp.type = PACKET_TYPE_MSPDATA;
+        otaPkt.msp.msp_ul.packageIndex = 0;
+        otaPkt.msp.msp_ul.payload.to_ping_responce.id = FBOXID;
+        otaPkt.msp.msp_ul.payload.to_ping_responce.key16 = FKEY16;
+        otaPkt.msp.msp_ul.payload.to_ping_responce.key8 = FKEY8;
+
+        otaPkt.msp.msp_ul.payload.type = TYPE_TO_PING_RESPONCE;
+
+        if (responceOneTime)
+        {
+            OtaGeneratePacketCrc(&otaPkt);
+            Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
+            responceOneTime = false;
+        }
+
+        if (millis() - pingRecvest < 30000){
+            allowPing = false;
+            sendRF = nullptr;
         }
     }
 
@@ -174,12 +218,12 @@ namespace gpsPlus{
                 isfix = true;
                 lastMillis = millis();
             }
-            
+            // TODO
         }
         else{
             if (isNoSpeed())
             {
-                
+                // TODO
             }
         }
 

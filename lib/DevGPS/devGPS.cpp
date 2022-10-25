@@ -1,5 +1,6 @@
 #include "devGPS.h"
 #include "common.h"
+#include "FHSS.h"
 
 namespace gpsPlus{
 
@@ -17,7 +18,11 @@ namespace gpsPlus{
                 break;
             case TYPE_SERVICE_TO_SYNC:
                 if (check8Key(pack->service_to_sync.key8) && checkid(pack->service_to_sync.id))
+                {
+                    
                     sendRF = sendServiceToSync;
+                }
+                    
                 break;
             case TYPE_GPS_RECVEST:
                 if (check8Key(pack->gps_recvest.key8) && check16Key(pack->gps_recvest.key16) && checkid(pack->gps_recvest.id))
@@ -36,8 +41,11 @@ namespace gpsPlus{
                     sendPingResponce();
                 break;
             case TYPE_TICK_RECVEST:
-                if (check8Key(pack->tick_recvest.key8) && check16Key(pack->tick_recvest.key16) && checkid(pack->tick_recvest.id))
+                if (check8Key(pack->tick_recvest.key8) && check16Key(pack->tick_recvest.key16) && checkid(pack->tick_recvest.id)){
+                    setupFHSSChannel(20 + BOXID);
                     sendRF = sendTickResponce;
+                }
+                    
                 break;
 
 
@@ -158,6 +166,7 @@ namespace gpsPlus{
     }
 
     static void sendServiceToSync(){
+        
         WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
         otaPkt.msp.type = PACKET_TYPE_MSPDATA;
         otaPkt.msp.msp_ul.packageIndex = 0;
@@ -168,7 +177,10 @@ namespace gpsPlus{
 
         OtaGeneratePacketCrc(&otaPkt);
         Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
+        setupFHSSChannel(5);
+    
         sendRF = nullptr;
+        
     }
 
     inline void updateLast(void){

@@ -1,6 +1,7 @@
 #include "devGPS.h"
 #include "common.h"
 #include "FHSS.h"
+#include <unistd.h>
 
 namespace gpsPlus{
 
@@ -162,7 +163,9 @@ namespace gpsPlus{
 
         OtaGeneratePacketCrc(&otaPkt);
         Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
-        
+        uint32_t now = millis();
+        while (millis() - now < 5)
+        {}
     }
 
     static void sendServiceToSync(){
@@ -217,10 +220,7 @@ namespace gpsPlus{
 
     static int gpsloop(void){
 
-        char str[50];
-        int l = sprintf(str, "millis = %u\n", millis());    
         
-        Serial.write(str, l);
 
         // if (!SerialLogger)
         //     return DURATION_IMMEDIATELY;

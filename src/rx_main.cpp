@@ -852,7 +852,7 @@ static bool ICACHE_RAM_ATTR ProcessRfPacket_SYNC(uint32_t const now, OTA_Sync_s 
     return false;
 }
 
-static void setupFHSSChannel(const uint8_t channel)
+ICACHE_RAM_ATTR void setupFHSSChannel(const uint8_t channel)
 {
     Radio.SetFrequencyReg(FHSSgetCurrFreq(channel));
 }

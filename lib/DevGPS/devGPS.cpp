@@ -97,8 +97,10 @@ namespace gpsPlus{
     }
 
     inline bool allowWakeUpTime(){
-        uint32_t centiseconds = (last_upd.time & 0x000000FF) * 10;
-        uint32_t seconds = ((last_upd.time & 0x0000FF00) >> 8) * 1000;
+        // uint32_t centiseconds = (last_upd.time & 0x000000FF) * 10;
+        uint32_t centiseconds = (last_upd.time % 100) * 10;
+       // uint32_t seconds = ((last_upd.time & 0x0000FF00) >> 8) * 1000;
+        uint32_t seconds = ((last_upd.time / 100) % 100) * 1000;
         uint32_t time = seconds + centiseconds + gps.time.age();
 
         if ((time % 5000) > (START_TIME + BUFFER) && (time % 5000) < (START_TIME + INTERVAL - BUFFER))

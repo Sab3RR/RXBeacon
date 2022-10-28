@@ -27,7 +27,7 @@
 
 namespace gpsPlus{
     static TinyGPSPlus gps;
-    static Stream *SerialLogger = nullptr;\
+    static Stream *SerialLogger = nullptr;
 
     static bool isfix = false;
     static bool allowPing = false;

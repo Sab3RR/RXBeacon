@@ -170,6 +170,11 @@ namespace gpsPlus{
         {}
     }
 
+    static void serviceToSyncCallback(){
+        setupFHSSChannel(FHSSSYNC);
+        TXCallBack = nullptr;
+    }
+
     static void sendServiceToSync(){
         
         WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
@@ -182,7 +187,8 @@ namespace gpsPlus{
 
         OtaGeneratePacketCrc(&otaPkt);
         Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
-        setupFHSSChannel(5);
+
+        
     
         sendRF = nullptr;
         

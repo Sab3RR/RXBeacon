@@ -1000,6 +1000,8 @@ bool ICACHE_RAM_ATTR RXdoneISR(SX12xxDriverCommon::rx_status const status)
 
 void ICACHE_RAM_ATTR TXdoneISR()
 {
+    if (gpsPlus::TXCallBack != nullptr)
+        gpsPlus::TXCallBack();
     Radio.RXnb();
 #if defined(DEBUG_RX_SCOREBOARD)
     DBGW('T');

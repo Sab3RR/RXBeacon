@@ -7,7 +7,7 @@
 #define KEY8    (uint8_t)0x8
 #define KEY16   (uint16_t)0x16
 #define KEY32   (uint32_t)0x0032
-#define BOXID   (uint8_t)0x03
+#define BOXID   (uint8_t)0x01
 
 #define FKEY8   fkey8Encode()
 #define FKEY16   fkey16Encode()

@@ -175,6 +175,7 @@ namespace gpsPlus{
         TXCallBack = nullptr;
     }
 
+
     static void sendServiceToSync(){
         
         WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
@@ -184,6 +185,8 @@ namespace gpsPlus{
         otaPkt.msp.msp_ul.payload.service_to_sync_responce.key8 = FKEY8;
         otaPkt.msp.msp_ul.payload.service_to_sync_responce.key16 = FKEY16;
         otaPkt.msp.msp_ul.payload.type = TYPE_SERVICE_TO_SYNC_RESPONCE;
+
+        TXCallBack = serviceToSyncCallback;
 
         OtaGeneratePacketCrc(&otaPkt);
         Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);

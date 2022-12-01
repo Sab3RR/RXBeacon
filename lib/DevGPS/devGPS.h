@@ -2,12 +2,14 @@
 #include "device.h"
 #include "TinyGPS++.h"
 #include "OTA.h"
+#include "FHSS.h"
 #include "common.h"
+#include <functional>
 
 #define KEY8    (uint8_t)0x8
 #define KEY16   (uint16_t)0x16
 #define KEY32   (uint32_t)0x0032
-#define BOXID   (uint8_t)0x01
+#define BOXID   (uint8_t)0x02
 
 #define FKEY8   fkey8Encode()
 #define FKEY16   fkey16Encode()
@@ -25,19 +27,21 @@
 
 #define FHSSSYNC 5
 
+extern device_t gpsDevice;
 
+struct gpsPlus{
+    TinyGPSPlus gps;
+    Stream *SerialLogger = nullptr;
 
-namespace gpsPlus{
-    static TinyGPSPlus gps;
-    static Stream *SerialLogger = nullptr;
+    bool isfix = false;
+    bool allowPing = false;
+     bool allowWakeUp = true;
+     bool lockDouble = false;
+     bool responceOneTime = false;
+     bool WORD_ALIGNED_ATTR DMA_ATTR TXdoneBool = false;
+     bool txTickDone = false;
 
-    static bool isfix = false;
-    static bool allowPing = false;
-    static bool allowWakeUp = true;
-    static bool lockDouble = false;
-    static bool responceOneTime = false;
-
-    static uint8_t fhss = 0;
+     uint8_t fhss = 0;
 
     typedef struct {
         double lat;
@@ -48,40 +52,45 @@ namespace gpsPlus{
         double speed;
     } gps_update;
 
-    static void (*sendRF)() = nullptr;
-    static void (*TXCallBack)() = nullptr;
+      std::function<void()> sendRF;
+    std::function<void()> TXCallBack2;
 
-    static uint8_t (*fkey8Encode)() = []() { return KEY8;}; 
-    static uint16_t (*fkey16Encode)() = []() { return KEY16;}; 
-    static uint32_t (*fkey32Encode)() = []() { return KEY32;};
-    static uint8_t (*fboxidEncode)() = []() { return BOXID;};
+     uint8_t (*fkey8Encode)() = []() { return KEY8;}; 
+     uint16_t (*fkey16Encode)() = []() { return KEY16;}; 
+     uint32_t (*fkey32Encode)() = []() { return KEY32;};
+     uint8_t (*fboxidEncode)() = []() { return BOXID;};
 
-    static gps_update last_upd;
+     gps_update last_upd;
 
-    static uint32_t lastMillis = 0;
-    static uint32_t pingRecvest = 0;
+     uint32_t lastMillis = 0;
+     uint32_t pingRecvest = 0;
 
-    extern device_t gpsDevice;
+    
 
     inline void updateLast(void);
-    static int start(void){
+     int start(void){
 //        setupFHSSChannel(SERVICE_CHANNEL);
         return DURATION_IMMEDIATELY;
     }
-    static bool checkid(uint8_t id) { return id == BOXID ? true : false;};            // TODO
-    static bool check8Key(uint8_t key) { return true;};         // TODO
-    static bool check16Key(uint16_t key) { return true;};        // TODO
-    static bool check32Key(uint32_t key)  { return true;};        // TODO
-    static bool checkWakeUpKey(uint32_t key)  { return true;};   // TODO
-    static void sendWakeUpResponce();           
-    static void sendServiceToSync();            
-    static void sendGPSResponce(uint8_t page);              
-    static void sendToPingResponce();           
-    ICACHE_RAM_ATTR void sendPingResponce();             
-    static void sendTickResponce();             
-    ICACHE_RAM_ATTR void packetProccess(OTA_Packet_s* packet);
-    static bool isNoSpeed(void);
-    static int loop(void);
+
+    void ICACHE_RAM_ATTR TXDoneFunc();
+     bool checkid(uint8_t id) { return id == BOXID ? true : false;};            // TODO
+     bool check8Key(uint8_t key) { return true;};         // TODO
+     bool check16Key(uint16_t key) { return true;};        // TODO
+     bool check32Key(uint32_t key)  { return true;};        // TODO
+     bool checkWakeUpKey(uint32_t key)  { return true;};   // TODO
+     void sendWakeUpResponce();           
+     void sendServiceToSync();            
+     void sendGPSResponce(uint8_t page);              
+     void sendToPingResponce();           
+     void ICACHE_RAM_ATTR sendPingResponce(); 
+    void ICACHE_RAM_ATTR serviceToSyncCallback();            
+     void ICACHE_RAM_ATTR sendTickResponce();             
+     void ICACHE_RAM_ATTR packetProccess(OTA_Packet_s* packet);
+     bool isNoSpeed(void);
+     int loop(void);
+     int gpsloop();
+     bool allowWakeUpTime();
 
     
-}
+};

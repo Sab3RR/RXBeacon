@@ -1,11 +1,11 @@
 #include "devGPS.h"
-#include "common.h"
-#include "FHSS.h"
-#include <unistd.h>
+// 
+// #include <unistd.h>
 
-namespace gpsPlus{
 
-    ICACHE_RAM_ATTR void packetProccess(OTA_Packet_s* packet){
+
+
+    ICACHE_RAM_ATTR void gpsPlus::packetProccess(OTA_Packet_s* packet){
 
         int index = packet->std.msp_ul.packageIndex;
         Pack_msg* pack = (Pack_msg*)(packet->std.msp_ul.payload);
@@ -13,7 +13,7 @@ namespace gpsPlus{
             case TYPE_WAKE_UP:
                 if (check32Key(pack->key32) && allowWakeUp)
                 {
-                    sendRF = sendWakeUpResponce;
+                    sendRF = std::bind(&gpsPlus::sendWakeUpResponce, this);
                     allowWakeUp = false;
                 }
                 break;
@@ -21,7 +21,7 @@ namespace gpsPlus{
                 if (check8Key(pack->service_to_sync.key8) && checkid(pack->service_to_sync.id))
                 {
                     
-                    sendRF = sendServiceToSync;
+                    sendRF = std::bind(&gpsPlus::sendServiceToSync, this);
                 }
                     
                 break;
@@ -34,7 +34,7 @@ namespace gpsPlus{
                     allowPing = true;
                     pingRecvest = millis();
                     responceOneTime = true;
-                    sendRF = sendToPingResponce;
+                    sendRF = std::bind(&gpsPlus::sendToPingResponce, this);
                 }
                 break;
             case TYPE_PING_RECVEST:
@@ -44,7 +44,10 @@ namespace gpsPlus{
             case TYPE_TICK_RECVEST:
                 if (check8Key(pack->tick_recvest.key8) && check16Key(pack->tick_recvest.key16) && checkid(pack->tick_recvest.id)){
                     setupFHSSChannel(20 + BOXID);
-                    sendRF = sendTickResponce;
+                    allowPing = false;
+                    TXCallBack2 = std::bind(&gpsPlus::TXDoneFunc, this);
+                    txTickDone = true;
+                    sendRF = std::bind(&gpsPlus::sendTickResponce, this);
                 }
                     
                 break;
@@ -53,7 +56,15 @@ namespace gpsPlus{
         }
     }
 
-    static void sendTickResponce(){
+    void ICACHE_RAM_ATTR gpsPlus::TXDoneFunc(){
+        txTickDone = true;
+    }
+
+     void ICACHE_RAM_ATTR gpsPlus::sendTickResponce(){
+        if (!txTickDone)
+            return;
+
+        txTickDone = false;
         WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
         otaPkt.msp.type = PACKET_TYPE_MSPDATA;
         otaPkt.msp.msp_ul.payload.type = TYPE_TICK_RESPONCE;
@@ -64,7 +75,7 @@ namespace gpsPlus{
 
     }
     
-    ICACHE_RAM_ATTR void sendPingResponce(){
+     void ICACHE_RAM_ATTR gpsPlus::sendPingResponce(){
         WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
         otaPkt.msp.type = PACKET_TYPE_MSPDATA;
         otaPkt.msp.msp_ul.payload.type = TYPE_PONG_RESPONCE;
@@ -73,7 +84,7 @@ namespace gpsPlus{
         Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
     }
 
-    static void sendToPingResponce(){
+     void gpsPlus::sendToPingResponce(){
         WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
         otaPkt.msp.type = PACKET_TYPE_MSPDATA;
         otaPkt.msp.msp_ul.packageIndex = 0;
@@ -90,13 +101,13 @@ namespace gpsPlus{
             responceOneTime = false;
         }
 
-        if (millis() - pingRecvest < 30000){
-            allowPing = false;
-            sendRF = nullptr;
+        if (millis() - pingRecvest > 30000){
+        //    allowPing = false;
+        //    sendRF = nullptr;
         }
     }
 
-    inline bool allowWakeUpTime(){
+    bool gpsPlus::allowWakeUpTime(){
         // uint32_t centiseconds = (last_upd.time & 0x000000FF) * 10;
         uint32_t centiseconds = (last_upd.time % 100) * 10;
        // uint32_t seconds = ((last_upd.time & 0x0000FF00) >> 8) * 1000;
@@ -109,7 +120,7 @@ namespace gpsPlus{
             return false;
     }
 
-    static void sendGPSResponce(uint8_t page){
+     void gpsPlus::sendGPSResponce(uint8_t page){
         WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
         uint32_t* msg;
 
@@ -150,7 +161,7 @@ namespace gpsPlus{
         Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
     }
 
-    static void sendWakeUpResponce(void){
+     void gpsPlus::sendWakeUpResponce(void){
 
         if (!allowWakeUpTime())
             return;
@@ -170,13 +181,14 @@ namespace gpsPlus{
         {}
     }
 
-    static void serviceToSyncCallback(){
+    void ICACHE_RAM_ATTR gpsPlus::serviceToSyncCallback(){
         setupFHSSChannel(FHSSSYNC);
-        TXCallBack = nullptr;
+        TXdoneBool = false;
+        TXCallBack2 = nullptr;
     }
 
 
-    static void sendServiceToSync(){
+     void gpsPlus::sendServiceToSync(){
         
         WORD_ALIGNED_ATTR OTA_Packet_s otaPkt = {0};
         otaPkt.msp.type = PACKET_TYPE_MSPDATA;
@@ -186,7 +198,8 @@ namespace gpsPlus{
         otaPkt.msp.msp_ul.payload.service_to_sync_responce.key16 = FKEY16;
         otaPkt.msp.msp_ul.payload.type = TYPE_SERVICE_TO_SYNC_RESPONCE;
 
-        TXCallBack = serviceToSyncCallback;
+        TXCallBack2 = std::bind(&gpsPlus::serviceToSyncCallback, this);
+        TXdoneBool = true;
 
         OtaGeneratePacketCrc(&otaPkt);
         Radio.TXnb((uint8_t*)&otaPkt, ExpressLRS_currAirRate_Modparams->PayloadLength);
@@ -197,7 +210,7 @@ namespace gpsPlus{
         
     }
 
-    inline void updateLast(void){
+    inline void gpsPlus::updateLast(void){
         if (gps.location.isUpdated() && !lockDouble)
         {
             last_upd.lat = gps.location.lat();
@@ -214,7 +227,7 @@ namespace gpsPlus{
             last_upd.date = gps.date.value();
     }
 
-    static bool isNoSpeed(void){
+     bool gpsPlus::isNoSpeed(void){
         uint32_t now = millis();
         static double lastSpeed;
         if (last_upd.speed - lastSpeed > 0)
@@ -229,7 +242,7 @@ namespace gpsPlus{
             return false;
     }
 
-    static int gpsloop(void){
+     int gpsPlus::gpsloop(void){
 
         
 
@@ -266,11 +279,10 @@ namespace gpsPlus{
         return DURATION_IMMEDIATELY;
     }
 
-
-    device_t gpsDevice = {
-        .initialize = nullptr,
-        .start = start,
-        .event = start,
-        .timeout = gpsloop,
-    };
-}
+    // extern gpsPlus gpsplus;
+    // device_t gpsDevice = {
+    //     .initialize = nullptr,
+    //     .start = gpsplus.start,
+    //     .event = gpsplus.start,
+    //     .timeout = gpsloop,
+    // };

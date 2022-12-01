@@ -22,9 +22,12 @@
 #include "devServoOutput.h"
 #include "devVTXSPI.h"
 #include "devAnalogVbat.h"
+#include <unistd.h>
+
+
 #include "devGPS.h"
 
-#include <unistd.h>
+// #include <unistd.h>
 
 ///LUA///
 #define LUA_MAX_PARAMS 32
@@ -61,11 +64,13 @@ device_affinity_t ui_devices[] = {
 #ifdef HAS_SERVO_OUTPUT
 //   {&ServoOut_device, 0},
 #endif
-    {&gpsPlus::gpsDevice, 1},
+//    {&gpsPlus::gpsDevice, 1},
 };
 
 uint8_t antenna = 0;    // which antenna is currently in use
 
+
+gpsPlus DMA_ATTR gpsplus;
 hwTimer hwTimer;
 POWERMGNT POWERMGNT;
 PFD PFDloop;
@@ -852,9 +857,10 @@ static bool ICACHE_RAM_ATTR ProcessRfPacket_SYNC(uint32_t const now, OTA_Sync_s 
     return false;
 }
 
-ICACHE_RAM_ATTR void setupFHSSChannel(const uint8_t channel)
+bool ICACHE_RAM_ATTR setupFHSSChannel(const uint8_t channel)
 {
     Radio.SetFrequencyReg(FHSSgetCurrFreq(channel));
+    return true;
 }
 
 uint8_t* call;
@@ -910,7 +916,7 @@ bool ICACHE_RAM_ATTR MyProccessRFPacket(SX12xxDriverCommon::rx_status const stat
     }
     if (otaPktPtr->std.type == PACKET_TYPE_MSPDATA)
     {
-        gpsPlus::packetProccess(otaPktPtr);
+        gpsplus.packetProccess(otaPktPtr);
     }
     return true;
 
@@ -1000,8 +1006,10 @@ bool ICACHE_RAM_ATTR RXdoneISR(SX12xxDriverCommon::rx_status const status)
 
 void ICACHE_RAM_ATTR TXdoneISR()
 {
-    if (gpsPlus::TXCallBack != nullptr)
-        gpsPlus::TXCallBack();
+    if (gpsplus.TXCallBack2 != nullptr)
+        gpsplus.TXCallBack2();
+   // if (gpsPlus::TXdoneBool)
+   //     gpsPlus::serviceToSyncCallback();
     Radio.RXnb();
 #if defined(DEBUG_RX_SCOREBOARD)
     DBGW('T');
@@ -1459,7 +1467,7 @@ void setup()
     #if defined(TARGET_UNIFIED_RX)
     Serial.begin(9600);
     SerialLogger = &Serial;
-    gpsPlus::SerialLogger = &Serial;
+    gpsplus.SerialLogger = &Serial;
     hardwareConfigured = options_init();
     if (!hardwareConfigured)
     {
@@ -1565,6 +1573,7 @@ void loop()
 //     }
 
      devicesUpdate(now);
+     gpsplus.gpsloop();
 
 // #if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
 //     // If the reboot time is set and the current time is past the reboot time then reboot.

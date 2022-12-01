@@ -37,7 +37,7 @@ static inline uint32_t FHSSgetChannelCount(void)
 }
 
 // get the number of entries in the FHSS sequence
-static inline uint16_t FHSSgetSequenceCount()
+static inline uint16_t ICACHE_RAM_ATTR FHSSgetSequenceCount()
 {
     return (256 / FHSSconfig->freq_count) * FHSSconfig->freq_count;
 }
@@ -49,25 +49,25 @@ static inline uint32_t GetInitialFreq()
 }
 
 // Get the current sequence pointer
-static inline uint8_t FHSSgetCurrIndex()
+static uint8_t FHSSgetCurrIndex()
 {
     return FHSSptr;
 }
 
 // Set the sequence pointer, used by RX on SYNC
-static inline void FHSSsetCurrIndex(const uint8_t value)
+static void ICACHE_RAM_ATTR FHSSsetCurrIndex(const uint8_t value)
 {
     FHSSptr = value % FHSSgetSequenceCount();
 }
 
-static inline uint32_t FHSSgetCurrFreq(const uint8_t value){
+static  uint32_t ICACHE_RAM_ATTR FHSSgetCurrFreq(const uint8_t value){
     FHSSsetCurrIndex(value);
     uint32_t freq = FHSSconfig->freq_start + (freq_spread * FHSSsequence[FHSSptr] / FREQ_SPREAD_SCALE) - FreqCorrection;
     return freq;
 }
 
 // Advance the pointer to the next hop and return the frequency of that channel
-static inline uint32_t FHSSgetNextFreq()
+static uint32_t FHSSgetNextFreq()
 {
     FHSSptr = (FHSSptr + 1) % FHSSgetSequenceCount();
     uint32_t freq = FHSSconfig->freq_start + (freq_spread * FHSSsequence[FHSSptr] / FREQ_SPREAD_SCALE) - FreqCorrection;
